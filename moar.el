@@ -198,8 +198,7 @@
     (orgalist-mode 1)))
 
 (define-key moar-mode-map (kbd "RET") 'moar-follow-link-or-newline)
-(define-key moar-mode-map [mouse-2] 'moar-follow-link-from-mouse)
-(define-key moar-mode-map [follow-link] 'moar-link-face)
+(define-key moar-mode-map [mouse-1] 'moar-follow-link-from-mouse)
 
 (define-key moar-mode-map (kbd "C-c [") 'moar-insert-link)
 (define-key moar-mode-map (kbd "C-c C-v") 'moar-visit-link-interactive)
