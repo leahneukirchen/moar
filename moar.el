@@ -193,6 +193,7 @@
   (add-to-list 'font-lock-extra-managed-props 'display)
   (font-lock-add-keywords nil
                           '(("^\\(\C-l\\)\n" 1 '(face nil display "∇"))))
+  (set (make-local-variable 'font-lock-multiline) t)
   (font-lock-mode 1)
   (when (fboundp 'orgalist-mode)
     (orgalist-mode 1)))
