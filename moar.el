@@ -78,11 +78,16 @@
 (defun moar-link-at-point ()
   (let (link-start 
         link-end)
-    (if (and (looking-back "\\[.*?")
-             (setq link-start (1+ (match-beginning 0)))
-             (looking-at ".*?\\]")
-             (setq link-end (1- (match-end 0)))
-             (< link-start link-end))   ; don't match empty links
+    (if (or (and (looking-back "\\[.*?")
+                 (setq link-start (1+ (match-beginning 0)))
+                 (looking-at ".*?\\]")
+                 (setq link-end (1- (match-end 0)))
+                 (< link-start link-end))   ; don't match empty links
+            (and (looking-back "#[[:word:]._-]*?")
+                 (setq link-start (1+ (match-beginning 0)))
+                 (looking-at "[[:word:]._-]*")
+                 (setq link-end (match-end 0))
+                 (< link-start link-end)))   ; don't match empty links
         (buffer-substring-no-properties link-start link-end))))
 
 (defun moar-follow-link-or-newline ()
@@ -123,11 +128,13 @@
         (save-restriction
           (widen)
           (goto-char 1)
-          (while (search-forward-regexp "^\C-l\n\\(.*\\)\\|\\[\\(.+?\\)\\]"
+          (while (search-forward-regexp "^\C-l\n\\(.*\\)\\|\\[\\(.+?\\)\\]\\|#\\([[:word:]._-]+\\)"
                                         nil t 1)
             (if (match-string 1)
                 (setq current-title (match-string-no-properties 1))
-              (push (cons current-title (match-string-no-properties 2)) matches)
+              (if (match-string 2)
+                  (push (cons current-title (match-string-no-properties 2)) matches)
+                (push (cons current-title (match-string-no-properties 3)) matches))
               )))))
     matches))
 
@@ -175,7 +182,8 @@
          (target (funcall read "Go to backlink: " links)))
     (when target
       (moar-visit-link target)
-      (when (re-search-forward (concat "\\[" (regexp-quote current-title) "\\]")
+      (when (re-search-forward (concat "\\[" (regexp-quote current-title) "\\]"
+                                       "\\|#" (regexp-quote current-title))
                                nil t)
         (goto-char (1+ (match-beginning 0))))
       )))
