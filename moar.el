@@ -7,6 +7,7 @@
 
 (require 'seq)
 (require 'pcase)
+(require 'cl-extra)
 (eval-when-compile (require 'subr-x))
 
 (defface moar-title-face
@@ -168,7 +169,8 @@
                    #'ivy-read
                  #'completing-read))
          (links (mapcar #'car
-                        (seq-filter #'(lambda (x) (equal (cdr x) current-title))
+                        (seq-filter #'(lambda (x)
+                                        (cl-equalp (cdr x) current-title))
                                     links-titles)))
          (target (funcall read "Go to backlink: " links)))
     (when target
