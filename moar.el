@@ -173,13 +173,21 @@
 
 (defun moar-insert-link ()
   (interactive)
-  (let* ((links (moar-all-links))
-         (read (if (fboundp 'ivy-read)
-                   #'ivy-read
-                 #'completing-read))
-         (target (funcall read "Link target? " links)))
-    (when target
-      (insert "[" target "]"))))
+  (if (use-region-p)
+      (save-excursion
+        (let ((start (region-beginning))
+              (end (region-end)))
+          (goto-char end)
+          (insert "]")
+          (goto-char start)
+          (insert "[")))
+    (let* ((links (moar-all-links))
+           (read (if (fboundp 'ivy-read)
+                     #'ivy-read
+                   #'completing-read))
+           (target (funcall read "Link target? " links)))
+      (when target
+        (insert "[" target "]")))))
 
 (defun moar-visit-link-interactive ()
   (interactive)
