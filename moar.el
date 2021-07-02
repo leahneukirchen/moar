@@ -25,6 +25,29 @@
   "Face to use for Moar page breaks."
   :group 'font-lock-highlighting-faces)
 
+(defvar moar-mode-abbrev-table nil)
+(define-abbrev-table 'moar-mode-abbrev-table
+  '(("-today" "" moar-insert-current-iso-date)
+    ("-tomorrow" "" moar-insert-tomorrow-iso-date)
+    ("-tmrw" "" moar-insert-tomorrow-iso-date)
+    ("-time" "" moar-insert-current-time)
+    ("-dottime" "" moar-insert-current-dottime)))
+
+(defun moar-insert-current-iso-date ()
+  (insert (format-time-string "%Y-%m-%d")))
+
+(defun moar-insert-tomorrow-iso-date ()
+  (insert (format-time-string "%Y-%m-%d"
+                              (time-add (current-time)
+                                        (* 24 3600)))))
+
+(defun moar-insert-current-time ()
+  (insert (format-time-string "%H:%M")))
+
+(defun moar-insert-current-dottime ()
+  (insert (format-time-string "%Y-%m%-dT%H\u00B7%M" (current-time) t))
+  (insert (string-remove-suffix "00" (format-time-string "%z"))))
+
 (defvar-local moar-history nil)
 
 (defun moar-add-page (title)
@@ -191,6 +214,7 @@
 (define-derived-mode moar-mode
   text-mode "Moar"
   "Major mode for Moar hypertext files."
+  (setq local-abbrev-table moar-mode-abbrev-table)
   (make-local-variable 'font-lock-defaults)
   (setq font-lock-defaults
         '((("^\\(\C-l\\)\n\\(.*\\)"
@@ -205,8 +229,11 @@
                           '(("^\\(\C-l\\)\n" 1 '(face nil display "∇"))))
   (set (make-local-variable 'font-lock-multiline) t)
   (font-lock-mode 1)
+  (abbrev-mode 1)
   (when (fboundp 'orgalist-mode)
     (orgalist-mode 1)))
+
+(modify-syntax-entry ?- "w" moar-mode-syntax-table)
 
 (define-key moar-mode-map (kbd "RET") 'moar-follow-link-or-newline)
 (define-key moar-mode-map [mouse-1] 'moar-follow-link-from-mouse)
