@@ -71,12 +71,25 @@
           (narrowed (buffer-narrowed-p)))
       (widen)
       (goto-char (point-min))
-      (if (re-search-forward (concat "\C-l\n[^\n]*" (regexp-quote text))
-                             nil t)
-          (move-beginning-of-line 1)
-        (goto-char old-point)
-        (when (y-or-n-p (concat "Link `" text "' not found, create?"))
-          (moar-add-page text)))
+      (if (string-match "\\^" text)
+          (progn
+            (let ((target (substring text (match-end 0))))
+              (if (re-search-forward (concat "\\(^\\|\\s-\\)\\^"
+                                             (regexp-quote target)
+                                             "$")
+                                     nil t)
+                  (progn
+                    (backward-paragraph)
+                    (forward-char))
+                (message "Link `^%s' not found." target)
+                (goto-char old-point)
+              )))
+        (if (re-search-forward (concat "\C-l\n[^\n]*" (regexp-quote text))
+                               nil t)
+            (move-beginning-of-line 1)
+          (goto-char old-point)
+          (when (y-or-n-p (concat "Link `" text "' not found, create?"))
+            (moar-add-page text))))
       (when narrowed
         (narrow-to-page)))))
 
@@ -191,6 +204,28 @@
       (when target
         (insert "[" target "]")))))
 
+(defun moar-generate-random-inner-target ()
+  (cl-loop repeat 3
+           concat (string (seq-random-elt
+                           "0123456789abcdefghijklmnopqrstuvwxyz"))))
+
+(defun moar-insert-inner-target ()
+  (interactive)
+  (let ((target (moar-generate-random-inner-target)))
+    (save-excursion
+      (save-restriction
+        (widen)
+        (goto-char 1)
+        (while (re-search-forward (concat "\\^" target) nil t)
+          (goto-char 1)
+          (setq target (moar-generate-random-inner-target)))))
+    (save-excursion
+      (forward-paragraph)
+      (backward-char)
+      (insert " ^" target)
+      (kill-new (concat "^" target))
+      (message "Copied link target `^%s'" target))))
+
 (defun moar-visit-link-interactive ()
   (interactive)
   (let* ((links (moar-all-links))
@@ -298,6 +333,7 @@
 (define-key moar-mode-map [mouse-1] 'moar-follow-link-from-mouse)
 
 (define-key moar-mode-map (kbd "C-c [") 'moar-insert-link)
+(define-key moar-mode-map (kbd "C-c ^") 'moar-insert-inner-target)
 (define-key moar-mode-map (kbd "C-c C-v") 'moar-visit-link-interactive)
 (define-key moar-mode-map (kbd "C-c C-b") 'moar-visit-backlink-interactive)
 (define-key moar-mode-map (kbd "C-c C-t") 'moar-visit-today)
