@@ -50,6 +50,8 @@
 
 (defvar-local moar-history nil)
 
+(defvar-local moar-invisible-areas nil)
+
 (defun moar-add-page (title)
   (goto-char (point-max))
   (unless (= (preceding-char) ?\n)
@@ -219,6 +221,54 @@
         (goto-char (1+ (match-beginning 0))))
       )))
 
+(defun moar-invisible-p (start end)
+  (seq-find (lambda (ov)
+	      (<= (overlay-start ov) start end (overlay-end ov)))
+            moar-invisible-areas))
+
+(defun moar-add-hidden-overlay (start end)
+  (unless (moar-invisible-p start end)
+    (let ((overlay (make-overlay start end)))
+      (push overlay moar-invisible-areas)
+      (unless (member 'hl buffer-invisibility-spec)
+	(add-to-invisibility-spec 'hl))
+      (overlay-put overlay 'invisible 'hl))))
+
+(defun moar-hide-page ()
+  (interactive)
+  (backward-page)
+  (let ((start (point)))
+    (forward-page)
+    (moar-add-hidden-overlay start (point))))
+
+(defun moar-filter (rx)
+  (interactive (list (read-regexp "Filter pages matching regexp: ")))
+  (widen)
+  (goto-char 1)
+  (let ((p (point))
+        (total 0)
+        (matches 0))
+    (while (not (eobp))
+      (let ((eop (save-excursion
+                   (forward-page)
+                   (point))))
+        (cl-incf total)
+        (if (re-search-forward rx eop t)
+            (cl-incf matches)
+          (moar-add-hidden-overlay p eop))
+        (goto-char eop)
+        (setq p eop)))
+    (message "Showing %d of %d pages." matches total)
+    (goto-char (point-min))
+    ))
+
+(defun moar-show-all ()
+  (interactive)
+  (mapc #'delete-overlay moar-invisible-areas)
+  (setq moar-invisible-areas ())
+  (remove-from-invisibility-spec 'hl)
+  (widen))
+
 (define-derived-mode moar-mode
   text-mode "Moar"
   "Major mode for Moar hypertext files."
@@ -236,6 +286,7 @@
   (font-lock-add-keywords nil
                           '(("^\\(\C-l\\)\n" 1 '(face nil display "∇"))))
   (set (make-local-variable 'font-lock-multiline) t)
+  (add-to-invisibility-spec 'hl)
   (font-lock-mode 1)
   (abbrev-mode 1)
   (when (fboundp 'orgalist-mode)
@@ -252,7 +303,9 @@
 (define-key moar-mode-map (kbd "C-c C-t") 'moar-visit-today)
 (define-key moar-mode-map (kbd "C-c C-y") 'moar-visit-yesterday)
 (define-key moar-mode-map (kbd "C-c C-n") 'narrow-to-page)
-(define-key moar-mode-map (kbd "C-c C-w") 'widen)
+(define-key moar-mode-map (kbd "C-c C-w") 'moar-show-all)
+(define-key moar-mode-map (kbd "C-c C-a") 'moar-show-all)
+(define-key moar-mode-map (kbd "C-c C-f") 'moar-filter)
 (define-key moar-mode-map (kbd "C-c C-o") 'moar-go-back)
 
 (provide 'moar)
